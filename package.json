@@ -1,0 +1,28 @@
+{
+  "name": "back",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u00001\u0004M\u0004:\u00045\u0004=\u00044\u0004\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon demo/src/index.js",
+    "start": "node demo/src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "http": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Anggelinna/backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Anggelinna/backend/issues"
+  },
+  "homepage": "https://github.com/Anggelinna/backend#readme"
+}
