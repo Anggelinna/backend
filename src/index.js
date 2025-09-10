@@ -54,5 +54,7 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(3000, () => {
-  console.log("Сервер запущен на 3000 порту");
+  console.log("   • http://localhost:3000");
+  console.log("   • http://localhost:3000?users");
+  console.log("   • http://localhost:3000?hello=YourName");
 });
