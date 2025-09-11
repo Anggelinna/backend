@@ -1,60 +1,34 @@
-const http = require("http");
-const path = require("path");
-const getUsers = require("./modules/users");
+const express = require("express");
+const dotenv = require("dotenv");
+const userRoutes = require("./routes/users");
+const bookRoutes = require("./routes/books");
+const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+const logger = require("./middleware/logger");
+const cors = require("./middleware/cors");
 
-const server = http.createServer((request, response) => {
-  const url = new URL(request.url, "http://127.0.0.1");
-  let otherParams = [];
+const app = express();
+app.use(bodyParser.json());
+app.use(logger);
+app.use(cors);
 
-  for (const [key, value] of url.searchParams.entries()) {
-    if (key !== "hello") {
-      otherParams.push({ key, value });
-    }
-  }
+const {
+  API_URL = "http://127.0.0.1",
+  PORT = "3005",
+  MONGO_URL = "mongodb://localhost:27017/backend",
+} = dotenv.config().parsed;
 
-  if (url.searchParams.has("users")) {
-    response.statusCode = 200;
-    response.statusMessage = "OK";
-    response.setHeader("Content-Type", "application/json");
-    response.write(getUsers());
-    response.end();
-    return;
-  }
+mongoose.connect(MONGO_URL);
 
-  if (url.searchParams.has("hello")) {
-    const name = url.searchParams.get("hello");
+app.use(userRoutes);
+app.use(bookRoutes);
 
-    if (!name) {
-      response.statusCode = 400;
-      response.setHeader("Content-Type", "text/plain");
-      response.end("Enter a name");
-      return;
-    }
-
-    response.statusCode = 200;
-    response.setHeader("Content-Type", "text/plain");
-    response.end(`Hello, ${name}!`);
-    return;
-  }
-
-  if (otherParams.length > 0) {
-    response.statusCode = 500;
-    response.statusMessage = "Internal Server Error";
-    response.setHeader("Content-Type", "text/plain");
-    response.write("");
-    response.end();
-    return;
-  }
-
-  response.statusCode = 200;
-  response.statusMessage = "OK";
-  response.setHeader("Content-Type", "text/plain");
-  response.write("Hello, World!");
-  response.end();
+app.listen(3005, () => {
+  console.log(`Сервер запущен на ${API_URL}:${PORT}`);
 });
 
-server.listen(3000, () => {
-  console.log("   • http://localhost:3000");
-  console.log("   • http://localhost:3000?users");
-  console.log("   • http://localhost:3000?hello=YourName");
-});
+//server.listen(3000, () => {
+//  console.log("   • http://localhost:3000");
+//  console.log("   • http://localhost:3000?users");
+//  console.log("   • http://localhost:3000?hello=YourName");
+//});

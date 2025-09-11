@@ -1,8 +1,10 @@
-const fs = require("fs");
-const path = require("path");
+const mongoose = require("mongoose");
 
-const getUsers = () => {
-  return fs.readFileSync(path.join(__dirname, "../data/users.json"), "utf8");
-};
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, minLength: 2 },
+  userName: { type: String, required: true, unique: true, minLength: 5 },
+  surname: { type: String, required: true, minLength: 2 },
+});
 
-module.exports = getUsers;
+const User = mongoose.model("User", userSchema);
+module.exports = User;
