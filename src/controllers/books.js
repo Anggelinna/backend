@@ -1,177 +1,191 @@
 const mongoose = require("mongoose");
 const Book = require("../models/books");
+const UserBooks = require("../models/usersBooks");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const getBookId = (req) => req.params.book_id || req.query.book_id;
 
-const getBooks = (req, res) => {
-  return Book.find({}).then((books) => {
-    res.status(200);
-    res.send(books);
-  });
+const handleError = (res, status, message) => {
+  res.status(status).send({ error: message });
 };
 
-const getBook = (req, res) => {
-  const book_id = getBookId(req);
-  if (!isValidObjectId(book_id)) {
-    res.status(400);
-    return res.send({ error: "Invalid book_id" });
+const getBooks = async (req, res) => {
+  try {
+    const books = await Book.find({});
+    res.status(200).send(books);
+  } catch (err) {
+    handleError(res, 500, err.message);
   }
-  return Book.findById(book_id)
-    .then((book) => {
-      if (!book) {
-        res.status(404);
-        return res.send({ error: "Book not found" });
-      }
-      res.status(200);
-      res.send(book);
-    })
-    .catch((err) => {
-      res.status(500);
-      res.send({ error: err.message });
-    });
 };
 
-const createBook = (req, res) => {
-  return Book.create({ ...req.body }).then((book) => {
-    res.status(201);
-    res.send(book);
-  });
-};
-
-const updateBook = (req, res) => {
+const getBook = async (req, res) => {
   const book_id = getBookId(req);
+  
   if (!isValidObjectId(book_id)) {
-    res.status(400);
-    return res.send({ error: "Invalid book_id" });
+    return handleError(res, 400, "Invalid book_id");
   }
-  return Book.findByIdAndUpdate(
-    book_id,
-    { ...req.body },
-    { new: true, runValidators: true }
-  )
-    .then((book) => {
-      if (!book) {
-        res.status(404);
-        return res.send({ error: "Book not found" });
-      }
-      res.status(200);
-      res.send(book);
-    })
-    .catch((err) => {
-      res.status(500);
-      res.send({ error: err.message });
-    });
+
+  try {
+    const book = await Book.findById(book_id);
+    if (!book) {
+      return handleError(res, 404, "Book not found");
+    }
+    res.status(200).send(book);
+  } catch (err) {
+    handleError(res, 500, err.message);
+  }
 };
 
-const deleteBook = (req, res) => {
+const createBook = async (req, res) => {
+  try {
+    const book = await Book.create({ ...req.body });
+    res.status(201).send(book);
+  } catch (err) {
+    if (err.code === 11000) {
+      handleError(res, 400, "Book with this ISBN already exists");
+    } else {
+      handleError(res, 500, err.message);
+    }
+  }
+};
+
+const updateBook = async (req, res) => {
   const book_id = getBookId(req);
+  
   if (!isValidObjectId(book_id)) {
-    res.status(400);
-    return res.send({ error: "Invalid book_id" });
+    return handleError(res, 400, "Invalid book_id");
   }
-  return Book.findByIdAndDelete(book_id)
-    .then((deleted) => {
-      if (!deleted) {
-        res.status(404);
-        return res.send({ error: "Book not found" });
-      }
-      res.status(204);
-      res.send();
-    })
-    .catch((err) => {
-      res.status(500);
-      res.send({ error: err.message });
-    });
+
+  try {
+    const book = await Book.findByIdAndUpdate(
+      book_id,
+      { ...req.body },
+      { new: true, runValidators: true }
+    );
+    
+    if (!book) {
+      return handleError(res, 404, "Book not found");
+    }
+    res.status(200).send(book);
+  } catch (err) {
+    handleError(res, 500, err.message);
+  }
 };
 
-const getBooksByUser = (req, res) => {
+const deleteBook = async (req, res) => {
+  const book_id = getBookId(req);
+  
+  if (!isValidObjectId(book_id)) {
+    return handleError(res, 400, "Invalid book_id");
+  }
+
+  try {
+    const deleted = await Book.findByIdAndDelete(book_id);
+    if (!deleted) {
+      return handleError(res, 404, "Book not found");
+    }
+    
+    await UserBooks.deleteMany({ bookId: book_id });
+    
+    res.status(204).send();
+  } catch (err) {
+    handleError(res, 500, err.message);
+  }
+};
+
+const getBooksByUser = async (req, res) => {
   const { user_id } = req.params;
-  return Book.find({ user_id }).then((books) => {
-    res.status(200);
-    res.send(books);
-  });
+  
+  if (!isValidObjectId(user_id)) {
+    return handleError(res, 400, "Invalid user_id");
+  }
+
+  try {
+    const userBooks = await UserBooks.find({ userId: user_id })
+      .populate('bookId')
+      .exec();
+    
+    const books = userBooks.map(ub => ub.bookId);
+    res.status(200).send(books);
+  } catch (err) {
+    handleError(res, 500, err.message);
+  }
 };
 
 const addBookToUser = async (req, res) => {
   const { user_id, book_id } = req.params;
-  const status = (req.body && req.body.status) || req.query.status;
+  const { status } = req.body;
   const allowedStatuses = ["reading", "completed", "wishlist"];
 
   if (!isValidObjectId(user_id) || !isValidObjectId(book_id)) {
-    res.status(400);
-    return res.send({ error: "Invalid user_id or book_id" });
+    return handleError(res, 400, "Invalid user_id or book_id");
   }
 
-  if (typeof status !== "undefined" && !allowedStatuses.includes(status)) {
-    res.status(400);
-    return res.send({
-      error: `Invalid status. Allowed: ${allowedStatuses.join(", ")}`,
-    });
+  if (status && !allowedStatuses.includes(status)) {
+    return handleError(res, 400, `Invalid status. Allowed: ${allowedStatuses.join(", ")}`);
   }
 
   try {
-    const UserBooks = require("../models/usersBooks");
-    const query = { userId: user_id, bookId: book_id };
+    const [book, user] = await Promise.all([
+      Book.findById(book_id),
+      mongoose.model("User").findById(user_id)
+    ]);
 
-    if (typeof status !== "undefined") {
-      const updated = await UserBooks.findOneAndUpdate(
-        query,
-        { $set: { status } },
-        { new: true, runValidators: true }
-      );
-      if (updated) {
-        res.status(200);
-        return res.send(updated);
-      }
-      const created = await UserBooks.create({ ...query, status });
-      res.status(201);
-      return res.send(created);
+    if (!book) return handleError(res, 404, "Book not found");
+    if (!user) return handleError(res, 404, "User not found");
+
+    if (book.availableCopies <= 0) {
+      return handleError(res, 400, "No available copies of this book");
     }
 
-    const existing = await UserBooks.findOne(query);
-    if (existing) {
-      res.status(200);
-      return res.send(existing);
+    const updateData = status ? { status } : {};
+    const userBook = await UserBooks.findOneAndUpdate(
+      { userId: user_id, bookId: book_id },
+      updateData,
+      { new: true, upsert: true, runValidators: true }
+    ).populate('bookId');
+
+    if (userBook.isNew) {
+      await Book.findByIdAndUpdate(book_id, { 
+        $inc: { availableCopies: -1 } 
+      });
     }
-    const created = await UserBooks.create(query);
-    res.status(201);
-    return res.send(created);
+
+    res.status(userBook.isNew ? 201 : 200).send(userBook);
   } catch (err) {
-    res.status(500);
-    return res.send({ error: err.message });
+    handleError(res, 500, err.message);
   }
 };
 
-const getBookByUser = (req, res) => {
-  const { user_id } = req.params;
-  const book_id = getBookId(req);
+const getBookByUser = async (req, res) => {
+  const { user_id, book_id } = req.params;
+  
   if (!isValidObjectId(user_id) || !isValidObjectId(book_id)) {
-    res.status(400);
-    return res.send({ error: "Invalid user_id or book_id" });
+    return handleError(res, 400, "Invalid user_id or book_id");
   }
-  const UserBooks = require("../models/usersBooks");
-  return UserBooks.findOne({ userId: user_id, bookId: book_id })
-    .populate("bookId")
-    .then((userBook) => {
-      if (!userBook) {
-        res.status(404);
-        return res.send({ error: "Book not found for this user" });
-      }
-      res.status(200);
-      res.send(userBook.bookId);
-    })
-    .catch((err) => {
-      res.status(500);
-      res.send({ error: err.message });
-    });
+
+  try {
+    const userBook = await UserBooks.findOne({ 
+      userId: user_id, 
+      bookId: book_id 
+    }).populate("bookId");
+    
+    if (!userBook) {
+      return handleError(res, 404, "Book not found for this user");
+    }
+    res.status(200).send(userBook.bookId);
+  } catch (err) {
+    handleError(res, 500, err.message);
+  }
 };
 
-module.exports.getBookByUser = getBookByUser;
-module.exports.getBooks = getBooks;
-module.exports.getBook = getBook;
-module.exports.createBook = createBook;
-module.exports.updateBook = updateBook;
-module.exports.deleteBook = deleteBook;
-module.exports.getBooksByUser = getBooksByUser;
-module.exports.addBookToUser = addBookToUser;
+module.exports = {
+  getBooks,
+  getBook,
+  createBook,
+  updateBook,
+  deleteBook,
+  getBooksByUser,
+  getBookByUser,
+  addBookToUser
+};
