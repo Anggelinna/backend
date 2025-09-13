@@ -30,6 +30,26 @@ mongoose.connect(MONGO_URL)
 app.use(userRoutes);
 app.use(bookRoutes);
 
+app.get("/", (req, res) => {
+  res.status(200).send({ 
+    message: "Library API is running!",
+    endpoints: {
+      users: "/users",
+      books: "/books"
+    }
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).send({ error: "Route not found" });
+});
+
+// Обработка ошибок
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send({ error: "Something went wrong!" });
+});
+
 app.listen(PORT, () => {
   console.log(`Сервер запущен на ${API_URL}:${PORT}`);
 });

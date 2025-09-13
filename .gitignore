@@ -1,5 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+API_URL=http://127.0.0.1
+PORT=3005
+MONGO_URL=mongodb://localhost:27017/library
+
 # dependencies
 /node_modules
 /.pnp
