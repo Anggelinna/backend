@@ -1,7 +1,5 @@
-//console.log('User controller loaded successfully');
-//const mongoose = require('mongoose');
-const User = require("../models/users"); 
-const mongoose = require('mongoose');
+const User = require("../models/users");
+
 const getUsers = (req, res) => {
   return User.find({}).then((users) => {
     res.status(200);
@@ -42,8 +40,10 @@ const deleteUser = (req, res) => {
   });
 };
 
-module.exports.getUsers = getUsers;
-module.exports.getUser = getUser;
-module.exports.createUser = createUser;
-module.exports.updateUser = updateUser;
-module.exports.deleteUser = deleteUser;
+module.exports = {
+  getUsers,
+  getUser,
+  createUser,
+  updateUser,
+  deleteUser
+};

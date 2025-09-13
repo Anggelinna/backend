@@ -1,7 +1,7 @@
 {
   "name": "back",
   "version": "1.0.0",
-  "description": "",
+  "description": "��#\u0000 \u00001\u0004M\u0004:\u00045\u0004=\u00044\u0004\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
@@ -11,9 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "http": "^0.0.1-security"
+    "http": "^0.0.1-security",
+    "mongoose": "^8.18.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

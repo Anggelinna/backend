@@ -5,30 +5,31 @@ const bookRoutes = require("./routes/books");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const logger = require("./middleware/logger");
-const cors = require("./middleware/cors");
+const corsMiddleware = require("./middleware/cors"); 
+
+dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(logger);
-app.use(cors);
+app.use(corsMiddleware); 
 
 const {
   API_URL = "http://127.0.0.1",
   PORT = "3005",
-  MONGO_URL = "mongodb://localhost:27017/backend",
-} = dotenv.config().parsed;
+  MONGO_URL = "mongodb://localhost:27017/library",
+} = process.env;
 
-mongoose.connect(MONGO_URL);
+mongoose.connect(MONGO_URL)
+  .then(() => console.log('Connected to MongoDB successfully'))
+  .catch((error) => {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 app.use(userRoutes);
 app.use(bookRoutes);
 
-app.listen(3005, () => {
+app.listen(PORT, () => {
   console.log(`Сервер запущен на ${API_URL}:${PORT}`);
 });
-
-//server.listen(3000, () => {
-//  console.log("   • http://localhost:3000");
-//  console.log("   • http://localhost:3000?users");
-//  console.log("   • http://localhost:3000?hello=YourName");
-//});
